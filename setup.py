@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '0.0.5'
+version = '0.0.6'
 setup(
     name = 'isotoma.recipe.trac',
     version = version,
@@ -31,6 +31,8 @@ setup(
         'zc.buildout',
         'Cheetah',
         'isotoma.recipe.gocaptain',
+        'zc.recipe.egg',
+        'Trac >= 0.12',
     ],
     entry_points = {
         "zc.buildout": [
