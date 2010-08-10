@@ -78,23 +78,15 @@ class Recipe(object):
         shutil.move(trac_ini, global_ini)
 
         parser = ConfigParser.ConfigParser()
-        
-        # Enable the components we want
-        components_to_enable = options.get('components_enabled', "").strip().split()
-        components_to_disable = options.get('components_disabled', "").strip().split()
-        # if we don't already have this section, add it
-        if (components_to_enable or components_to_disable) and 'components' not in parser.sections():
-                parser.add_section('components')
-                
-        # add the compone
-        for component in components_to_enable:
-            parser.set('components', component, 'enabled')
-        for component in components_to_disable:
-            parser.set('components', component, 'disabled')
     
-        # add the inheritance line
         parser.add_section('inherit')
-        parser.set('inherit', 'file', global_ini)
+
+        # get the config file we're setting from
+        if options.has_key('config-file'):
+            local_config = os.path.join(self.buildout['buildout']['directory'], options.get('config-file'))
+            parser.set('inherit', 'file', ','.join([global_ini, local_config]))
+        else:
+            parser.set('inherit', 'file', global_ini)
 
         parser.write(open(trac_ini, 'w'))
 
