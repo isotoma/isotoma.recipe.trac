@@ -84,7 +84,7 @@ class Recipe(object):
         # get the config file we're setting from
         if options.has_key('config-file'):
             local_config = os.path.join(self.buildout['buildout']['directory'], options.get('config-file'))
-            parser.set('inherit', 'file', ','.join([global_ini, local_config]))
+            parser.set('inherit', 'file', ','.join([local_config, global_ini]))
         else:
             parser.set('inherit', 'file', global_ini)
 
