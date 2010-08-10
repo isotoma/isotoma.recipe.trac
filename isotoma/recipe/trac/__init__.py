@@ -90,5 +90,9 @@ class Recipe(object):
 
         parser.write(open(trac_ini, 'w'))
 
+        # buildout expects a tuple of paths, but we don't have any to add
+        # just return an empty one for now.
+        return tuple()
+
     def update(self):
         pass
