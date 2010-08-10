@@ -96,3 +96,5 @@ class Recipe(object):
 
     def update(self):
         pass
+
+    update = install
