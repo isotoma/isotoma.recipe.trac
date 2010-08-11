@@ -9,6 +9,24 @@ import zc.recipe.egg
 
 from trac.admin.console import TracAdmin
 
+wsgi_template = """
+%%(relative_paths_setup)s
+import sys
+import os
+sys.path[0:0] = [
+  %%(path)s,
+  ]
+  
+  
+%%(initialization)s
+import trac.web.main
+os.environ['PYTHON_EGG_CACHE'] = '%(egg_cache)s'
+def application(environ, start_response):
+    environ['trac.env_path'] = '%(env_path)s'
+    return trac.web.main.dispatch_request(environ, start_response)
+
+"""
+
 class Recipe(object):
 
     def __init__(self, buildout, name, options):
@@ -75,7 +93,8 @@ class Recipe(object):
         global_ini = os.path.join(location, 'conf', 'global.ini')
 
         # move the existing config
-        shutil.move(trac_ini, global_ini)
+        if not os.path.exists(global_ini):
+            shutil.move(trac_ini, global_ini)
 
         parser = ConfigParser.ConfigParser()
     
@@ -90,11 +109,31 @@ class Recipe(object):
 
         parser.write(open(trac_ini, 'w'))
 
+        if options.has_key('wsgi') and options['wsgi'].lower() == 'true':
+            self.install_wsgi()
+
         # buildout expects a tuple of paths, but we don't have any to add
         # just return an empty one for now.
         return tuple()
 
     def update(self):
         pass
+
+    def install_wsgi(self):
+        """ Instal the wsgi script for running from apache """
+        _script_template = zc.buildout.easy_install.script_template
+        
+        zc.buildout.easy_install.script_template = wsgi_template % {'env_path': self.options['location'], 'egg_cache': self.buildout['buildout']['eggs-directory']}
+        requirements, ws = self.egg.working_set(['isotoma.recipe.trac'])
+        
+        zc.buildout.easy_install.scripts(
+                [(self.name + '.wsgi', 'isotoma.recipe.trac.wsgi', 'main')],
+                ws,
+                sys.executable,
+                self.options['bin-directory']
+                )
+        zc.buildout.easy_install.script_template = _script_template
+        
+        return True
 
     update = install
