@@ -9,6 +9,15 @@ import zc.recipe.egg
 
 from trac.admin.console import TracAdmin
 
+try:
+    import json
+except:
+    import simplejson as json
+
+import warnings
+warnings.filterwarnings('ignore', '.*', UserWarning, 'Cheetah.Compiler', 1508)
+from Cheetah.Template import Template
+
 wsgi_template = """
 %%(relative_paths_setup)s
 import sys
@@ -53,7 +62,14 @@ unittest.main(defaultTest = 'suite')
 
 """
 
+
 class Recipe(object):
+
+    def write_config(self, config_file_name, template_file_name, opt):
+        template = open(template_file_name).read()
+        c = Template(template, searchList = opt)
+        open(config_file_name, "w").write(str(c))
+
 
     def __init__(self, buildout, name, options):
         self.buildout, self.name, self.options = buildout, name, options
@@ -122,18 +138,16 @@ class Recipe(object):
         if not os.path.exists(global_ini):
             shutil.move(trac_ini, global_ini)
 
-        parser = ConfigParser.ConfigParser()
-    
-        parser.add_section('inherit')
-
-        # get the config file we're setting from
-        if options.has_key('config-file'):
-            local_config = os.path.join(self.buildout['buildout']['directory'], options.get('config-file'))
-            parser.set('inherit', 'file', ','.join([local_config, global_ini]))
-        else:
-            parser.set('inherit', 'file', global_ini)
-
-        parser.write(open(trac_ini, 'w'))
+        # parse the options to pass into our template
+        template_options = self.options['config-template-options']
+        template_options = json.loads(template_options)
+        
+        template_options['global_base_file'] = global_ini
+        template_options['site_url'] = self.options.get('site-url', "")
+        template_options['log_directory'] = self.options.get('log-directory', "")
+        template_options['trac_location'] = self.options['location']
+        
+        self.write_config(trac_ini, self.options['base-config'], template_options)
 
         if options.has_key('wsgi') and options['wsgi'].lower() == 'true':
             self.install_wsgi()
