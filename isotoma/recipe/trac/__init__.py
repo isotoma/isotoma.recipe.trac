@@ -26,6 +26,7 @@ sys.path[0:0] = [
   %%(path)s,
   ]
   
+sys.stdin = sys.stderr
   
 %%(initialization)s
 import trac.web.main
