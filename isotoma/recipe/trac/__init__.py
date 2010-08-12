@@ -76,7 +76,8 @@ class Recipe(object):
         self.buildout, self.name, self.options = buildout, name, options
 
         options['location'] = os.path.join(
-            buildout['buildout']['var'],
+            buildout['buildout'],
+            'var',
             self.name
             )
 
