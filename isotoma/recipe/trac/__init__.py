@@ -135,8 +135,7 @@ class Recipe(object):
 
         parser.write(open(trac_ini, 'w'))
 
-        if options.has_key('wsgi') and opti
-ons['wsgi'].lower() == 'true':
+        if options.has_key('wsgi') and options['wsgi'].lower() == 'true':
             self.install_wsgi()
             
         if options.has_key('testrunner') and options['testrunner'].lower() == 'true':
