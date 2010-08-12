@@ -31,6 +31,28 @@ def application(environ, start_response):
 
 """
 
+testrunner_template = """#!/usr/bin/env python
+%%(relative_paths_setup)s
+import sys
+import os
+sys.path[0:0] = [
+  %%(path)s,
+  ]
+  
+  
+%%(initialization)s
+# monkey patch to our generated python
+sys.executable = '%(python_path)s'
+
+#import the tests
+from trac.test import suite
+import unittest
+
+# run the tests
+unittest.main(defaultTest = 'suite')
+
+"""
+
 class Recipe(object):
 
     def __init__(self, buildout, name, options):
@@ -113,8 +135,12 @@ class Recipe(object):
 
         parser.write(open(trac_ini, 'w'))
 
-        if options.has_key('wsgi') and options['wsgi'].lower() == 'true':
+        if options.has_key('wsgi') and opti
+ons['wsgi'].lower() == 'true':
             self.install_wsgi()
+            
+        if options.has_key('testrunner') and options['testrunner'].lower() == 'true':
+            self.install_testrunner()
 
         # buildout expects a tuple of paths, but we don't have any to add
         # just return an empty one for now.
@@ -140,4 +166,22 @@ class Recipe(object):
         
         return True
 
+    def install_testrunner(self):
+        """ This will install a test runner that will run the default trac tests. It relies on the zc.recipe.egg interpreter being present at bin-directory/python """
+        """ Instal the wsgi script for running from apache """
+        _script_template = zc.buildout.easy_install.script_template
+        
+        zc.buildout.easy_install.script_template = testrunner_template % {'python_path': self.buildout['buildout']['bin-directory'] + '/python'}
+        requirements, ws = self.egg.working_set(['isotoma.recipe.trac'])
+        
+        zc.buildout.easy_install.scripts(
+                [('testrunner', 'isotoma.recipe.trac.testrunner', 'main')],
+                ws,
+                sys.executable,
+                self.options['bin-directory']
+                )
+        zc.buildout.easy_install.script_template = _script_template
+        
+        return True
+    
     update = install
