@@ -76,9 +76,8 @@ class Recipe(object):
         self.buildout, self.name, self.options = buildout, name, options
 
         options['location'] = os.path.join(
-            buildout['buildout'],
-            'var',
-            self.name
+            buildout['buildout']['directory'],
+            os.path.join('var',self.name)
             )
 
         options['bin-directory'] = buildout['buildout']['bin-directory']
@@ -122,7 +121,7 @@ class Recipe(object):
         repos_path = options.get('repos-path', "")
 
         if not os.path.exists(location):
-            os.mkdir(location)
+            os.makedirs(location)
 
         trac = TracAdmin(location)
     
