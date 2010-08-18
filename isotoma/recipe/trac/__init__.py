@@ -150,6 +150,8 @@ class Recipe(object):
         if options.has_key('testrunner') and options['testrunner'].lower() == 'true':
             self.install_testrunner()
 
+        self.install_htpasswd()
+
         # buildout expects a tuple of paths, but we don't have any to add
         # just return an empty one for now.
         return tuple()
