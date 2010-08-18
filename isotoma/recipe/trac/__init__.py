@@ -8,6 +8,7 @@ import zc.buildout
 import zc.recipe.egg
 
 from trac.admin.console import TracAdmin
+import trac.admin.console
 
 try:
     import json
@@ -198,9 +199,16 @@ class Recipe(object):
         """ Install a default htpasswd file if one doesn't already exist """
         if os.path.exists(os.path.join(self.options['location'], 'passwords.db')):
             return
+        
+        if not self.options.has_key('initial_username'):
+            return
 
         passwords = open(os.path.join(self.options['location'], 'passwords.db'), 'w')
-        passwords.write('admin:1GghjGjKGV6o2')
+        passwords.write(self.options['initial_username'] + ':' + self.options['initial_user_password'])
         passwords.close()
+
+        # grant admin permissions to the new user
+        args = [self.options['location'], 'permission', 'add', self.options['initial_username'], 'TRAC_ADMIN']
+        trac.admin.console.run(args)
     
     update = install
