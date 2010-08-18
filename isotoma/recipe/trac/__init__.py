@@ -138,7 +138,6 @@ class Recipe(object):
         template_options = self.options['config-template-options']
         template_options = json.loads(template_options)
         
-        template_options['global_base_file'] = global_ini
         template_options['site_url'] = self.options.get('site-url', "")
         template_options['log_directory'] = self.options.get('log-directory', "")
         template_options['trac_location'] = self.options['location']
@@ -192,5 +191,14 @@ class Recipe(object):
         zc.buildout.easy_install.script_template = _script_template
         
         return True
+
+    def install_htpasswd(self):
+        """ Install a default htpasswd file if one doesn't already exist """
+        if os.path.exists(os.path.join(self.options['location'], 'passwords.db')):
+            return
+
+        passwords = open(os.path.join(self.options['location'], 'passwords.db'), 'w')
+        passwords.write('admin:1GghjGjKGV6o2')
+        passwords.close()
     
     update = install
