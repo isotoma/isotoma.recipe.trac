@@ -133,11 +133,6 @@ class Recipe(object):
         
         # move the generated config out of the way so we can inherit it
         trac_ini = os.path.join(location, 'conf', 'trac.ini')
-        global_ini = os.path.join(location, 'conf', 'global.ini')
-
-        # move the existing config
-        if not os.path.exists(global_ini):
-            shutil.move(trac_ini, global_ini)
 
         # parse the options to pass into our template
         template_options = self.options['config-template-options']
