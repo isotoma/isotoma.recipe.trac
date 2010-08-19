@@ -33,9 +33,6 @@ sys.stdin = sys.stderr
 import trac.web.main
 os.environ['PYTHON_EGG_CACHE'] = '%(egg_cache)s'
 
-import trac.db.postgres_backend
-trac.db.postgres_backend.PostgreSQLConnection.poolable = False
-
 def application(environ, start_response):
     environ['trac.env_path'] = '%(env_path)s'
     return trac.web.main.dispatch_request(environ, start_response)
