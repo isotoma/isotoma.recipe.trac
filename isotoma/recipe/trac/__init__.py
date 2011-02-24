@@ -61,6 +61,11 @@ unittest.main(defaultTest = 'suite')
 
 """
 
+custom_trac_ini_template = """# DO NOT REMOVE THIS COMMENT - BUILDOUT
+[inherit]
+file = %s
+
+"""
 
 class Recipe(object):
 
@@ -68,6 +73,15 @@ class Recipe(object):
         template = open(template_file_name).read()
         c = Template(template, searchList = opt)
         open(config_file_name, "w").write(str(c))
+
+    def write_custom_config(self, config_file_name, base_file_path):
+        
+        # don't overwrite it, we only want to create it once
+        existing = open(config_file_name, 'r').read()
+        if existing.split()[0] != "# DO NOT REMOVE THIS COMMENT - BUILDOUT":
+            newini = open(config_file_name, 'w')
+            newini.write(custom_trac_ini_template % base_file_path)
+            newini.close()
 
 
     def __init__(self, buildout, name, options):
@@ -130,7 +144,7 @@ class Recipe(object):
         self.egg.install()
         
         # move the generated config out of the way so we can inherit it
-        trac_ini = os.path.join(location, 'conf', 'trac.ini')
+        trac_ini = os.path.join(location, 'conf', 'base_trac.ini')
 
         # parse the options to pass into our template
         template_options = self.options['config-template-options']
@@ -143,6 +157,7 @@ class Recipe(object):
         template_options['database_dsn'] = db
 
         self.write_config(trac_ini, self.options['base-config'], template_options)
+        self.write_custom_config(os.path.join(location, 'conf', 'trac.ini'), trac_ini)
 
         if options.has_key('wsgi') and options['wsgi'].lower() == 'true':
             self.install_wsgi()
