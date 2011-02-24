@@ -1,0 +1,6 @@
+1.3.0
+-----
+
+ * Generate a base_trac.ini and a trac.ini that inherits from it, for manual intervention
+ * Added tests
+ * Added skeleton buildout for testing
