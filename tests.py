@@ -76,13 +76,18 @@ class MetaInstanceTests(unittest.TestCase):
         file_split = split[2].split(' ')
         self.assertTrue(file_split[2] == self.basetracini)
         
-    def testProjectOneHasWGI(self):
+    def testProjectOneDoesNotHaveWGI(self):
         bin_dir = os.path.join(self.location, 'bin')
         result = os.path.exists(os.path.join(bin_dir, 'project1.wsgi'))
-        self.assertTrue(result, "Project 1 has not created a wsgi file")
+        self.assertFalse(result, "Project 1 has generated a wsgi file")
         
     def testProjectTwoDoesNotHaveWSGI(self):
         bin_dir = os.path.join(self.location, 'bin')
         result = os.path.exists(os.path.join(bin_dir, 'project2.wsgi'))
         self.assertFalse(result, "Project 2 has generated a wsgi file")
+        
+    def testMetaWSGI(self):
+        bin_dir = os.path.join(self.location, 'bin')
+        result = os.path.exists(os.path.join(bin_dir, 'meta-trac.wsgi'))
+        self.assertTrue(result, "meta-trac has not generated a wsgi file")
 

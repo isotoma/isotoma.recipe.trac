@@ -37,6 +37,26 @@ def application(environ, start_response):
 
 """
 
+meta_wsgi_template = """
+%%(relative_paths_setup)s
+import sys
+import os
+sys.path[0:0] = [
+  %%(path)s,
+  ]
+  
+sys.stdin = sys.stderr
+  
+%%(initialization)s
+import trac.web.main
+os.environ['PYTHON_EGG_CACHE'] = '%(egg_cache)s'
+os.environ['TRAC_ENV_PARENT_DIR'] = '%(env_path)s'
+
+def application(environ, start_response):
+    return trac.web.main.dispatch_request(environ, start_response)
+
+"""
+
 testrunner_template = """#!/usr/bin/env python
 %%(relative_paths_setup)s
 import sys
@@ -147,8 +167,7 @@ class Recipe(object):
         
         if self.metamode:
             # put the config file somewhere so we can inherit it
-            #os.makedirs(location)
-            self._write_ini(os.path.join(location, 'base_trac.ini'), db)
+            self._write_ini(os.path.join(location, 'base_trac.ini'), db, {'location': location})
             
             instances = self._get_instances()
             for instance, data in instances.iteritems():
@@ -157,10 +176,6 @@ class Recipe(object):
                 trac = TracAdmin(meta_location)
                 trac.do_initenv('%s %s %s %s' % (instance, db, repos_type, repos_path))
                 self.write_custom_config(os.path.join(meta_location, 'conf', 'trac.ini'), os.path.join(location, 'base_trac.ini'))
-                
-                if data.has_key('wsgi') and data['wsgi'].lower() == 'true':
-                    # install the wsgi script for each instance
-                    self.install_wsgi(meta_location, instance)
             
         else:
             trac = TracAdmin(location)
@@ -171,8 +186,8 @@ class Recipe(object):
             self._write_ini(os.path.join(location, 'conf', 'base_trac.ini'), db, self.options)
             self.write_custom_config(os.path.join(location, 'conf', 'trac.ini'), os.path.join(location, 'conf', 'base_trac.ini'))
 
-            if options.has_key('wsgi') and options['wsgi'].lower() == 'true':
-                self.install_wsgi(options['location'], self.name)
+        if options.has_key('wsgi') and options['wsgi'].lower() == 'true':
+            self.install_wsgi(options['location'])
             
         if options.has_key('testrunner') and options['testrunner'].lower() == 'true':
             self.install_testrunner()
@@ -214,15 +229,18 @@ class Recipe(object):
     def update(self):
         pass
 
-    def install_wsgi(self, location, name):
+    def install_wsgi(self, location):
         """ Instal the wsgi script for running from apache """
         _script_template = zc.buildout.easy_install.script_template
         
-        zc.buildout.easy_install.script_template = wsgi_template % {'env_path': location, 'egg_cache': self.buildout['buildout']['eggs-directory']}
+        if self.metamode:
+            zc.buildout.easy_install.script_template = meta_wsgi_template % {'env_path': location, 'egg_cache': self.buildout['buildout']['eggs-directory']}
+        else:
+            zc.buildout.easy_install.script_template = wsgi_template % {'env_path': location, 'egg_cache': self.buildout['buildout']['eggs-directory']}
         requirements, ws = self.egg.working_set(['isotoma.recipe.trac'])
         
         zc.buildout.easy_install.scripts(
-                [(name + '.wsgi', 'isotoma.recipe.trac.wsgi', 'main')],
+                [(self.name + '.wsgi', 'isotoma.recipe.trac.wsgi', 'main')],
                 ws,
                 sys.executable,
                 self.options['bin-directory']
