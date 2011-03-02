@@ -1,7 +1,5 @@
 import os
 import sys
-import ConfigParser
-import shutil
 
 import pkg_resources
 import zc.buildout
@@ -134,6 +132,8 @@ class Recipe(object):
 
         if not os.path.exists(location):
             os.makedirs(location)
+
+        print "Creating Trac Instance in: " + location
 
         trac = TracAdmin(location)
     

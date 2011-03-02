@@ -18,10 +18,10 @@ class ConfigTests(unittest.TestCase):
         self.assertTrue(result, "base_trac.ini not created")
 
     def testTracIniCreated(self):
-       """ Check that the base config file is created """
-       path_to_check = self.tracini
-       result = os.path.exists(path_to_check)
-       self.assertTrue(result, "Trac ini not created") 
+        """ Check that the base config file is created """
+        path_to_check = self.tracini
+        result = os.path.exists(path_to_check)
+        self.assertTrue(result, "Trac ini not created") 
 
     def testContentsTracIni(self):
         """  Check that we haven't got the default config and we've got our generated one """
