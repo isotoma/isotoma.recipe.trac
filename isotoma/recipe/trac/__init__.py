@@ -174,8 +174,9 @@ class Recipe(object):
                 # we need a new location for each project
                 meta_location = os.path.join(self.buildout['buildout']['directory'], 'var', self.name, instance)
                 trac = TracAdmin(meta_location)
-                trac.do_initenv('%s %s %s %s' % (instance, db, repos_type, repos_path))
-                self.write_custom_config(os.path.join(meta_location, 'conf', 'trac.ini'), os.path.join(location, 'base_trac.ini'))
+                if not trac.env_check():
+                    trac.do_initenv('%s %s %s %s' % (instance, db, repos_type, repos_path))
+                    self.write_custom_config(os.path.join(meta_location, 'conf', 'trac.ini'), os.path.join(location, 'base_trac.ini'))
             
         else:
             trac = TracAdmin(location)
