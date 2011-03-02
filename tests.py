@@ -9,7 +9,6 @@ class ConfigTests(unittest.TestCase):
         self.location = os.path.dirname(__file__)
         self.tracini = os.path.join(self.location, 'var', 'trac', 'conf', 'trac.ini')
         self.basetracini = os.path.join(self.location, 'var', 'trac', 'conf', 'base_trac.ini')
-        pass
 
     def testBaseConfigExists(self):
         """ Check that the base config file is created """
@@ -34,3 +33,21 @@ class ConfigTests(unittest.TestCase):
 
         file_split = split[2].split(' ')
         self.assertTrue(file_split[2] == self.basetracini)
+
+
+class MetaInstanceTests(unittest.TestCase):
+    """ Test that you can create multiple instances properly with the meta-mode """
+
+    def setUp(self):
+        self.location = os.path.dirname(__file__)
+        self.project_location = os.path.join(self.location, 'var')
+        self.project_one_location = os.path.join(self.project_location, 'project1')
+        self.project_two_location = os.path.join(self.project_location, 'project2')
+
+    def testProjectsCreated(self):
+        """ Check that the directories for the instances were created """
+        result = os.path.exists(self.project_one_location)
+        self.assertTrue(result)
+        result_two = os.path.exists(self.project_two_location)
+        self.assertTrue(result_two)
+

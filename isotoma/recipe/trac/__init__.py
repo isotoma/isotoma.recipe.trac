@@ -153,7 +153,7 @@ class Recipe(object):
         template_options['site_url'] = self.options.get('site-url', "")
         template_options['log_directory'] = self.options.get('log-directory', "")
         template_options['trac_location'] = self.options['location']
-   
+
         template_options['database_dsn'] = db
 
         self.write_config(trac_ini, self.options['base-config'], template_options)
