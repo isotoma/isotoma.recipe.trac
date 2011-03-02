@@ -40,7 +40,8 @@ class MetaInstanceTests(unittest.TestCase):
 
     def setUp(self):
         self.location = os.path.dirname(__file__)
-        self.project_location = os.path.join(self.location, 'var')
+        self.basetracini = os.path.join(self.location, 'var', 'meta-trac', 'base_trac.ini')
+        self.project_location = os.path.join(self.location, 'var', 'meta-trac')
         self.project_one_location = os.path.join(self.project_location, 'project1')
         self.project_two_location = os.path.join(self.project_location, 'project2')
 
@@ -50,4 +51,38 @@ class MetaInstanceTests(unittest.TestCase):
         self.assertTrue(result)
         result_two = os.path.exists(self.project_two_location)
         self.assertTrue(result_two)
+        
+    def testProjectOneIniFiles(self):
+        """  Check that we haven't got the default config and we've got our generated one """
+        path_to_check = os.path.join(self.project_one_location, 'conf', 'trac.ini')
+        tracini = open(path_to_check).read()
+
+        # check it's the right length
+        split = tracini.split('\n')
+        self.assertTrue(len(split) == 5, "trac.ini is the wrong length")
+
+        file_split = split[2].split(' ')
+        self.assertTrue(file_split[2] == self.basetracini)
+        
+    def testProjectTwoIniFiles(self):
+        """  Check that we haven't got the default config and we've got our generated one """
+        path_to_check = os.path.join(self.project_two_location, 'conf', 'trac.ini')
+        tracini = open(path_to_check).read()
+
+        # check it's the right length
+        split = tracini.split('\n')
+        self.assertTrue(len(split) == 5, "trac.ini is the wrong length")
+
+        file_split = split[2].split(' ')
+        self.assertTrue(file_split[2] == self.basetracini)
+        
+    def testProjectOneHasWGI(self):
+        bin_dir = os.path.join(self.location, 'bin')
+        result = os.path.exists(os.path.join(bin_dir, 'project1.wsgi'))
+        self.assertTrue(result, "Project 1 has not created a wsgi file")
+        
+    def testProjectTwoDoesNotHaveWSGI(self):
+        bin_dir = os.path.join(self.location, 'bin')
+        result = os.path.exists(os.path.join(bin_dir, 'project2.wsgi'))
+        self.assertFalse(result, "Project 2 has generated a wsgi file")
 
