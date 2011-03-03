@@ -93,6 +93,8 @@ file = %(base_file_path)s
 admin_trac_url = .
 name = %(project_name)s
 
+[trac]
+database = %(database_dsn)s
 """
 
 class Recipe(object):
@@ -193,6 +195,17 @@ class Recipe(object):
                 if not trac.env_check():
                     trac.do_initenv('%s %s %s %s' % (instance, db, repos_type, repos_path))
                     data.update({'project_name': instance})
+                    
+                    # get the database dsn
+                    db_options = {  'user': data.get('db-username', 'trac'), 
+                            'pass': data.get('db-password', 'trac'), 
+                            'host': data.get('db-host', 'localhost'), 
+                            'port': data.get('db-port', '5432'),
+                            'db': instance
+                         }
+                    db = 'postgres://%(user)s:%(pass)s@%(host)s:%(port)s/%(db)s' % db_options
+                    data['database_dsn'] = db
+                    
                     self.write_custom_config(os.path.join(meta_location, 'conf', 'trac.ini'), 
                                              os.path.join(location, 'base_trac.ini'),
                                              meta = True,
