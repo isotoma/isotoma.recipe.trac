@@ -85,6 +85,16 @@ file = %s
 
 """
 
+meta_trac_ini_template = """# DO NOT REMOVE THIS COMMENT - BUILDOUT
+[inherit]
+file = %(base_file_path)s
+
+[project]
+admin_trac_url = .
+name = %(project_name)s
+
+"""
+
 class Recipe(object):
 
     def write_config(self, config_file_name, template_file_name, opt):
@@ -92,13 +102,18 @@ class Recipe(object):
         c = Template(template, searchList = opt)
         open(config_file_name, "w").write(str(c))
 
-    def write_custom_config(self, config_file_name, base_file_path):
+    def write_custom_config(self, config_file_name, base_file_path, meta = False, meta_vars = None):
         
         # don't overwrite it, we only want to create it once
         existing = open(config_file_name, 'r').read()
         if existing.split()[0] != "# DO NOT REMOVE THIS COMMENT - BUILDOUT":
             newini = open(config_file_name, 'w')
-            newini.write(custom_trac_ini_template % base_file_path)
+            if meta:
+                data = {'base_file_path': base_file_path}
+                data.update(meta_vars)
+                newini.write(meta_trac_ini_template % data)
+            else:
+                newini.write(custom_trac_ini_template % base_file_path)
             newini.close()
 
 
@@ -176,7 +191,11 @@ class Recipe(object):
                 trac = TracAdmin(meta_location)
                 if not trac.env_check():
                     trac.do_initenv('%s %s %s %s' % (instance, db, repos_type, repos_path))
-                    self.write_custom_config(os.path.join(meta_location, 'conf', 'trac.ini'), os.path.join(location, 'base_trac.ini'))
+                    data.update({'project_name': instance})
+                    self.write_custom_config(os.path.join(meta_location, 'conf', 'trac.ini'), 
+                                             os.path.join(location, 'base_trac.ini'),
+                                             meta = True,
+                                             meta_vars = data)
             
         else:
             trac = TracAdmin(location)
