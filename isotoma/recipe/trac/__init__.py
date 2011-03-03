@@ -163,9 +163,10 @@ class Recipe(object):
             db_options = {  'user': options['db-username'], 
                             'pass': options['db-password'], 
                             'host': options.get('db-host', 'localhost'), 
+                            'db': options.get('db-name', 'trac'), 
                             'port': options.get('db-port', '5432')
                          }
-            db = 'postgres://%(user)s:%(pass)s@%(host)s:%(port)s' % db_options
+            db = 'postgres://%(user)s:%(pass)s@%(host)s:%(port)s/%(db)s' % db_options
 
         repos_type = options.get('repos-type', "")
         repos_path = options.get('repos-path', "")
