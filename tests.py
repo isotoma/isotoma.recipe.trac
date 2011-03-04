@@ -59,7 +59,7 @@ class MetaInstanceTests(unittest.TestCase):
 
         # check it's the right length
         split = tracini.split('\n')
-        self.assertTrue(len(split) == 9, "trac.ini is the wrong length")
+        self.assertTrue(len(split) == 12, "trac.ini is the wrong length")
 
         file_split = split[2].split(' ')
         self.assertTrue(file_split[2] == self.basetracini)
@@ -71,7 +71,7 @@ class MetaInstanceTests(unittest.TestCase):
 
         # check it's the right length
         split = tracini.split('\n')
-        self.assertTrue(len(split) == 9, "trac.ini is the wrong length")
+        self.assertTrue(len(split) == 12, "trac.ini is the wrong length")
 
         file_split = split[2].split(' ')
         self.assertTrue(file_split[2] == self.basetracini)

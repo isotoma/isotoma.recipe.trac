@@ -6,6 +6,7 @@ import zc.buildout
 import zc.recipe.egg
 
 from trac.admin.console import TracAdmin
+from trac.versioncontrol.api import DbRepositoryProvider
 import trac.admin.console
 
 try:
@@ -95,6 +96,7 @@ name = %(project_name)s
 
 [trac]
 database = %(database_dsn)s
+repository-dir = %(repository-dir)s
 """
 
 class Recipe(object):
@@ -193,8 +195,8 @@ class Recipe(object):
                 meta_location = os.path.join(self.buildout['buildout']['directory'], 'var', self.name, instance)
                 trac = TracAdmin(meta_location)
                 if not trac.env_check():
-                    trac.do_initenv('%s %s %s %s' % (instance, db, repos_type, repos_path))
-                    data.update({'project_name': instance})
+                    repos_type = data.get('repository_type', '')
+                    repos_path = data.get('repository-dir', '')
                     
                     # get the database dsn
                     db_options = {  'user': data.get('db-username', 'trac'), 
@@ -204,12 +206,21 @@ class Recipe(object):
                             'db': instance
                          }
                     db = 'postgres://%(user)s:%(pass)s@%(host)s:%(port)s/%(db)s' % db_options
+                    
+                    env = trac.do_initenv('%s %s %s %s' % (instance, db, repos_type, repos_path))
+                    data.update({'project_name': instance,
+                                 'repository-dir': data.get('repository-dir', '')})
+                    
                     data['database_dsn'] = db
                     
                     self.write_custom_config(os.path.join(meta_location, 'conf', 'trac.ini'), 
                                              os.path.join(location, 'base_trac.ini'),
                                              meta = True,
                                              meta_vars = data)
+                    
+                    # add any repositories
+                    repo_provider = DbRepositoryProvider(trac.env)
+                    repo_provider.add_repository('default', repos_path, repos_type)
             
         else:
             trac = TracAdmin(location)
