@@ -1,13 +1,12 @@
 import os
 import sys
-import ConfigParser
-import shutil
 
 import pkg_resources
 import zc.buildout
 import zc.recipe.egg
 
 from trac.admin.console import TracAdmin
+from trac.versioncontrol.api import DbRepositoryProvider
 import trac.admin.console
 
 try:
@@ -35,6 +34,26 @@ os.environ['PYTHON_EGG_CACHE'] = '%(egg_cache)s'
 
 def application(environ, start_response):
     environ['trac.env_path'] = '%(env_path)s'
+    return trac.web.main.dispatch_request(environ, start_response)
+
+"""
+
+meta_wsgi_template = """
+%%(relative_paths_setup)s
+import sys
+import os
+sys.path[0:0] = [
+  %%(path)s,
+  ]
+  
+sys.stdin = sys.stderr
+  
+%%(initialization)s
+import trac.web.main
+os.environ['PYTHON_EGG_CACHE'] = '%(egg_cache)s'
+os.environ['TRAC_ENV_PARENT_DIR'] = '%(env_path)s'
+
+def application(environ, start_response):
     return trac.web.main.dispatch_request(environ, start_response)
 
 """
@@ -67,6 +86,19 @@ file = %s
 
 """
 
+meta_trac_ini_template = """# DO NOT REMOVE THIS COMMENT - BUILDOUT
+[inherit]
+file = %(base_file_path)s
+
+[project]
+admin_trac_url = .
+name = %(project_name)s
+
+[trac]
+database = %(database_dsn)s
+repository-dir = %(repository-dir)s
+"""
+
 class Recipe(object):
 
     def write_config(self, config_file_name, template_file_name, opt):
@@ -74,14 +106,19 @@ class Recipe(object):
         c = Template(template, searchList = opt)
         open(config_file_name, "w").write(str(c))
 
-    def write_custom_config(self, config_file_name, base_file_path):
+    def write_custom_config(self, config_file_name, base_file_path, meta = False, meta_vars = None):
         
         # don't overwrite it, we only want to create it once
         existing = open(config_file_name, 'r').readline().strip()
         if existing != "# DO NOT MOVE THIS COMMENT - BUILDOUT":
             print "Writing custom config"
             newini = open(config_file_name, 'w')
-            newini.write(custom_trac_ini_template % base_file_path)
+            if meta:
+                data = {'base_file_path': base_file_path}
+                data.update(meta_vars)
+                newini.write(meta_trac_ini_template % data)
+            else:
+                newini.write(custom_trac_ini_template % base_file_path)
             newini.close()
 
 
@@ -102,6 +139,11 @@ class Recipe(object):
         self.egg = zc.recipe.egg.Scripts(buildout, name, {
                     "eggs": "\n".join(["Trac", "isotoma.recipe.trac", ]  + eggs),
                     })
+        
+        if options.get('metamode', "") and options['metamode'].lower() == 'true':
+            self.metamode = True
+        else:
+            self.metamode = False
 
     def install(self):
         options = self.options
@@ -137,32 +179,61 @@ class Recipe(object):
         if not os.path.exists(location):
             os.makedirs(location)
 
-        trac = TracAdmin(location)
-    
-        if not trac.env_check():
-            trac.do_initenv('%s %s %s %s' % (project_name, db, repos_type, repos_path))
+        print "Creating Trac Instance in: " + location
+
+        
         
         # install the eggs that we need
         self.egg.install()
         
-        # move the generated config out of the way so we can inherit it
-        trac_ini = os.path.join(location, 'conf', 'base_trac.ini')
-
-        # parse the options to pass into our template
-        template_options = self.options['config-template-options']
-        template_options = json.loads(template_options)
+        if self.metamode:
+            # put the config file somewhere so we can inherit it
+            self._write_ini(os.path.join(location, 'base_trac.ini'), db, {'location': location})
+            
+            instances = self._get_instances()
+            for instance, data in instances.iteritems():
+                # we need a new location for each project
+                meta_location = os.path.join(self.buildout['buildout']['directory'], 'var', self.name, instance)
+                trac = TracAdmin(meta_location)
+                if not trac.env_check():
+                    repos_type = data.get('repository_type', '')
+                    repos_path = data.get('repository-dir', '')
+                    
+                    # get the database dsn
+                    db_options = {  'user': data.get('db-username', 'trac'), 
+                            'pass': data.get('db-password', 'trac'), 
+                            'host': data.get('db-host', 'localhost'), 
+                            'port': data.get('db-port', '5432'),
+                            'db': instance
+                         }
+                    db = 'postgres://%(user)s:%(pass)s@%(host)s:%(port)s/%(db)s' % db_options
+                    
+                    env = trac.do_initenv('%s %s %s %s' % (instance, db, repos_type, repos_path))
+                    data.update({'project_name': instance,
+                                 'repository-dir': data.get('repository-dir', '')})
+                    
+                    data['database_dsn'] = db
+                    
+                    self.write_custom_config(os.path.join(meta_location, 'conf', 'trac.ini'), 
+                                             os.path.join(location, 'base_trac.ini'),
+                                             meta = True,
+                                             meta_vars = data)
+                    
+                    # add any repositories
+                    repo_provider = DbRepositoryProvider(trac.env)
+                    repo_provider.add_repository('default', repos_path, repos_type)
+            
+        else:
+            trac = TracAdmin(location)
+            
+            if not trac.env_check():
+                trac.do_initenv('%s %s %s %s' % (project_name, db, repos_type, repos_path))
         
-        template_options['site_url'] = self.options.get('site-url', "")
-        template_options['log_directory'] = self.options.get('log-directory', "")
-        template_options['trac_location'] = self.options['location']
-   
-        template_options['database_dsn'] = db
-
-        self.write_config(trac_ini, self.options['base-config'], template_options)
-        self.write_custom_config(os.path.join(location, 'conf', 'trac.ini'), trac_ini)
+            self._write_ini(os.path.join(location, 'conf', 'base_trac.ini'), db, self.options)
+            self.write_custom_config(os.path.join(location, 'conf', 'trac.ini'), os.path.join(location, 'conf', 'base_trac.ini'))
 
         if options.has_key('wsgi') and options['wsgi'].lower() == 'true':
-            self.install_wsgi()
+            self.install_wsgi(options['location'])
             
         if options.has_key('testrunner') and options['testrunner'].lower() == 'true':
             self.install_testrunner()
@@ -172,15 +243,46 @@ class Recipe(object):
         # buildout expects a tuple of paths, but we don't have any to add
         # just return an empty one for now.
         return tuple()
+    
+    def _write_ini(self, location, db, options):
+        # move the generated config out of the way so we can inherit it
+        trac_ini = location
+
+        # parse the options to pass into our template
+        template_options = self.options['config-template-options']
+        template_options = json.loads(template_options)
+        
+        template_options['site_url'] = options.get('site-url', "")
+        template_options['log_directory'] = options.get('log-directory', "")
+        template_options['trac_location'] = options['location']
+
+        template_options['database_dsn'] = db
+
+        self.write_config(trac_ini, self.options['base-config'], template_options)
+        
+    def _get_instances(self):
+        """ Get the instances and their options from buildout """
+        instance_list = [instance.strip() for instance in self.options['instances'].split(',')]
+        
+        data = {}
+        
+        for instance in instance_list:
+            data[instance] = self.buildout[instance]
+            
+        return data
+        
 
     def update(self):
         pass
 
-    def install_wsgi(self):
+    def install_wsgi(self, location):
         """ Instal the wsgi script for running from apache """
         _script_template = zc.buildout.easy_install.script_template
         
-        zc.buildout.easy_install.script_template = wsgi_template % {'env_path': self.options['location'], 'egg_cache': self.buildout['buildout']['eggs-directory']}
+        if self.metamode:
+            zc.buildout.easy_install.script_template = meta_wsgi_template % {'env_path': location, 'egg_cache': self.buildout['buildout']['eggs-directory']}
+        else:
+            zc.buildout.easy_install.script_template = wsgi_template % {'env_path': location, 'egg_cache': self.buildout['buildout']['eggs-directory']}
         requirements, ws = self.egg.working_set(['isotoma.recipe.trac'])
         
         zc.buildout.easy_install.scripts(
