@@ -61,7 +61,7 @@ unittest.main(defaultTest = 'suite')
 
 """
 
-custom_trac_ini_template = """# DO NOT REMOVE THIS COMMENT - BUILDOUT
+custom_trac_ini_template = """# DO NOT MOVE THIS COMMENT - BUILDOUT
 [inherit]
 file = %s
 
@@ -77,8 +77,9 @@ class Recipe(object):
     def write_custom_config(self, config_file_name, base_file_path):
         
         # don't overwrite it, we only want to create it once
-        existing = open(config_file_name, 'r').read()
-        if existing.split()[0] != "# DO NOT REMOVE THIS COMMENT - BUILDOUT":
+        existing = open(config_file_name, 'r').readline().strip()
+        if existing != "# DO NOT MOVE THIS COMMENT - BUILDOUT":
+            print "Writing custom config"
             newini = open(config_file_name, 'w')
             newini.write(custom_trac_ini_template % base_file_path)
             newini.close()
