@@ -1,5 +1,6 @@
 import os
 import sys
+import ConfigParser
 
 import pkg_resources
 import zc.buildout
@@ -109,8 +110,12 @@ class Recipe(object):
     def write_custom_config(self, config_file_name, base_file_path, meta = False, meta_vars = None):
         
         # don't overwrite it, we only want to create it once
-        existing = open(config_file_name, 'r').read()
-        if existing.split()[0] != "# DO NOT REMOVE THIS COMMENT - BUILDOUT":
+        config = ConfigParser.ConfigParser()
+        config.read(config_file_name)
+        
+        if config.has_section('inherit') and config.has_option('inherit', 'file') and config.get('inherit', 'file') == base_file_path:
+            return
+        else:
             newini = open(config_file_name, 'w')
             if meta:
                 data = {'base_file_path': base_file_path}
@@ -119,7 +124,10 @@ class Recipe(object):
             else:
                 newini.write(custom_trac_ini_template % base_file_path)
             newini.close()
-
+            
+            
+        return 
+        
 
     def __init__(self, buildout, name, options):
         self.buildout, self.name, self.options = buildout, name, options
@@ -261,7 +269,7 @@ class Recipe(object):
         
     def _get_instances(self):
         """ Get the instances and their options from buildout """
-        instance_list = [instance.strip() for instance in self.options['instances'].split(',')]
+        instance_list = [instance.strip() for instance in self.options['instances'].split('\n')]
         
         data = {}
         
