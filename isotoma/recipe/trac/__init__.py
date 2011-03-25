@@ -81,7 +81,7 @@ unittest.main(defaultTest = 'suite')
 
 """
 
-custom_trac_ini_template = """# DO NOT REMOVE THIS COMMENT - BUILDOUT
+custom_trac_ini_template = """# DO NOT MOVE THIS COMMENT - BUILDOUT
 [inherit]
 file = %s
 
