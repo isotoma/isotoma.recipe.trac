@@ -207,13 +207,16 @@ class Recipe(object):
                     repos_path = data.get('repository-dir', '')
                     
                     # get the database dsn
-                    db_options = {  'user': data.get('db-username', 'trac'), 
-                            'pass': data.get('db-password', 'trac'), 
-                            'host': data.get('db-host', 'localhost'), 
-                            'port': data.get('db-port', '5432'),
-                            'db': instance
-                         }
-                    db = 'postgres://%(user)s:%(pass)s@%(host)s:%(port)s/%(db)s' % db_options
+                    if not data.has_key('db-type') or data['db-type'] == 'sqlite':
+                        db = 'sqlite:%s' % os.path.join('db', 'trac.db')
+                    elif data['db-type'] == 'postgres':
+                        db_options = {  'user': data.get('db-username', 'trac'), 
+                                'pass': data.get('db-password', 'trac'), 
+                                'host': data.get('db-host', 'localhost'), 
+                                'port': data.get('db-port', '5432'),
+                                'db': instance
+                             }
+                        db = 'postgres://%(user)s:%(pass)s@%(host)s:%(port)s/%(db)s' % db_options
                     
                     env = trac.do_initenv('%s %s %s %s' % (instance, db, repos_type, repos_path))
                     data.update({'project_name': instance,
