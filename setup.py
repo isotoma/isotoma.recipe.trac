@@ -33,7 +33,7 @@ setup(
         'Cheetah',
         'isotoma.recipe.gocaptain',
         'zc.recipe.egg',
-        'Trac >= 0.12',
+        'Trac >= 0.12, < 1.0',
     ],
     entry_points = {
         "zc.buildout": [
